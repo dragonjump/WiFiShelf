@@ -39,6 +39,10 @@ const AUTH_USER = process.env.AUTH_USER || 'sean';
 const AUTH_PASS = process.env.AUTH_PASS || 'sean';
 
 function basicAuth(req, res, next) {
+  // Bypass auth for video streaming endpoint
+  if (req.path.startsWith('/api/view')) {
+    return next();
+  }
   const authHeader = req.headers.authorization;
   if (!authHeader) {
     res.setHeader('WWW-Authenticate', 'Basic realm="Secure Remote File Viewer"');
@@ -143,18 +147,20 @@ app.get('/api/view', (req, res) => {
     if (!relativeQueryPath) {
       return res.status(400).json({ error: 'Path is required' });
     }
-
     const absoluteFilePath = safeResolve(relativeQueryPath);
-
-    // Check if file exists and is not a directory
     const stats = fs.statSync(absoluteFilePath);
     if (stats.isDirectory()) {
       return res.status(400).json({ error: 'Cannot view a directory' });
     }
-
-    // Express sendFile handles ranges automatically for streaming
+    // Determine MIME type based on file extension
+    const mime = require('mime-types');
+    const contentType = mime.lookup(absoluteFilePath) || 'application/octet-stream';
+    // Set caching headers for static assets
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
+    // Stream the file with proper headers; Express handles range requests automatically
     res.sendFile(absoluteFilePath, {
       headers: {
+        'Content-Type': contentType,
         'Accept-Ranges': 'bytes'
       }
     });

@@ -3,15 +3,41 @@
   "version": "1.0.0",
   "description": "A lightweight remote file viewer and manager built in Node.js",
   "main": "server.js",
+  "bin": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "build:exe": "pkg . --targets node18-win-x64"
+  },
+  "pkg": {
+    "assets": ["public/**/*"]
   },
   "dependencies": {
     "express": "^4.19.2",
     "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0"
   },
+  "devDependencies": {
+    "electron": "^30.5.1",
+    "electron-builder": "^24.13.3",
+    "pkg": "^5.8.1"
+  },
   "author": "Antigravity",
-  "license": "ISC"
+  "license": "ISC",
+  "build": {
+    "appId": "com.dragonjump.wifishelf",
+    "productName": "WifiShelf",
+    "win": {
+      "target": "nsis",
+      "icon": "public/image.png"
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "server.js",
+      "public/**/*",
+      "electron-main.js",
+      "package.json"
+    ]
+  }
 }
