@@ -38,6 +38,21 @@ const deleteCancel = document.getElementById('delete-cancel');
 // Set connection host display based on current window location
 hostNameSpan.textContent = `Server: ${window.location.host}`;
 
+// Fetch QR code for this server URL and display it
+fetch('/api/qr')
+  .then(r => r.json())
+  .then(data => {
+    const qrImg = document.getElementById('qr-code-img');
+    if (qrImg && data.qrDataUrl) {
+      qrImg.src = data.qrDataUrl;
+      qrImg.title = `Scan to open ${data.url}`;
+      qrImg.addEventListener('click', () => {
+        window.open(data.url, '_blank');
+      });
+    }
+  })
+  .catch(err => console.error('QR code fetch error:', err));
+
 // --- Theme Toggle Logic ---
 const btnThemeToggle = document.getElementById('btn-theme-toggle');
 const currentTheme = localStorage.getItem('theme') || 'dark';

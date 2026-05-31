@@ -8,7 +8,9 @@
     "dev": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
   },
   "author": "Antigravity",
   "license": "ISC"

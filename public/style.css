@@ -127,6 +127,20 @@ body {
 }
 
 /* Header */
+
+@media (max-width: 600px) {
+  .app-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 16px;
+  }
+  .logo-area {
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+}
+
 .app-header {
   display: flex;
   justify-content: space-between;
@@ -258,6 +272,21 @@ body.light-theme .btn-root-path {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+  }
+}
+
+
+@media (max-width: 600px) {
+  .header-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .header-controls .btn-root-path,
+  .header-controls .btn-glass,
+  .header-controls .stats-area {
+    width: 100%;
+    justify-content: center;
   }
 }
 

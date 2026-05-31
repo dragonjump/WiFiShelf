@@ -2,9 +2,11 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-
+const QRCode = require('qrcode');
+const QRCodeTerminal = require('qrcode-terminal');
 const app = express();
-const PORT = process.env.PORT || 3005;
+
+const PORT = process.env.PORT || 3006;
 
 // Determine target root directory:
 // 1. First command line argument
@@ -20,15 +22,15 @@ console.log(`==================================================\n`);
 // Safety check helper to prevent directory traversal
 function safeResolve(reqPath) {
   if (!reqPath) return rootDir;
-  
+
   // Resolve the path relative to the root directory
   const resolved = path.resolve(rootDir, reqPath);
-  
+
   // Check if the resolved path is inside the root directory
   if (!resolved.startsWith(rootDir)) {
     throw new Error('Access denied: Path is outside the target root directory');
   }
-  
+
   return resolved;
 }
 
@@ -69,7 +71,7 @@ app.get('/api/config', (req, res) => {
 app.post('/api/config/root', express.json(), (req, res) => {
   const { newPath } = req.body;
   if (!newPath) return res.status(400).json({ error: 'Path is required' });
-  
+
   try {
     const resolvedPath = path.resolve(newPath);
     if (!fs.existsSync(resolvedPath)) {
@@ -79,7 +81,7 @@ app.post('/api/config/root', express.json(), (req, res) => {
     if (!stats.isDirectory()) {
       return res.status(400).json({ error: 'Path must be a directory' });
     }
-    
+
     rootDir = resolvedPath;
     console.log(`🔄 Root directory dynamically changed to: ${rootDir}`);
     res.json({ success: true, rootDir });
@@ -93,23 +95,23 @@ app.get('/api/files', async (req, res) => {
   try {
     const relativeQueryPath = req.query.path || '';
     const absoluteTargetDir = safeResolve(relativeQueryPath);
-    
+
     // Check if target exists and is a directory
     const stats = await fs.promises.stat(absoluteTargetDir);
     if (!stats.isDirectory()) {
       return res.status(400).json({ error: 'Target is not a directory' });
     }
-    
+
     const items = await fs.promises.readdir(absoluteTargetDir, { withFileTypes: true });
-    
+
     const fileList = [];
     for (const item of items) {
       const itemRelativePath = path.join(relativeQueryPath, item.name);
       const itemAbsolutePath = path.join(absoluteTargetDir, item.name);
-      
+
       try {
         const itemStats = await fs.promises.stat(itemAbsolutePath);
-        
+
         fileList.push({
           name: item.name,
           path: itemRelativePath.replace(/\\/g, '/'), // uniform path separator
@@ -123,7 +125,7 @@ app.get('/api/files', async (req, res) => {
         continue;
       }
     }
-    
+
     res.json({
       currentPath: relativeQueryPath.replace(/\\/g, '/'),
       files: fileList
@@ -141,15 +143,15 @@ app.get('/api/view', (req, res) => {
     if (!relativeQueryPath) {
       return res.status(400).json({ error: 'Path is required' });
     }
-    
+
     const absoluteFilePath = safeResolve(relativeQueryPath);
-    
+
     // Check if file exists and is not a directory
     const stats = fs.statSync(absoluteFilePath);
     if (stats.isDirectory()) {
       return res.status(400).json({ error: 'Cannot view a directory' });
     }
-    
+
     // Express sendFile handles ranges automatically for streaming
     res.sendFile(absoluteFilePath, {
       headers: {
@@ -162,29 +164,42 @@ app.get('/api/view', (req, res) => {
   }
 });
 
-// API: Delete File or Folder
+
+// API: Generate QR code for server URL (default to localhost)
+app.get('/api/qr', (req, res) => {
+  const host = req.headers.host || `localhost:${PORT}`;
+  const url = `http://${host}`;
+  QRCode.toDataURL(url, (err, src) => {
+    if (err) {
+      console.error('QR generation error:', err);
+      return res.status(500).json({ error: err.message });
+    }
+    res.json({ qrDataUrl: src, url });
+  });
+});
+
 app.delete('/api/delete', async (req, res) => {
   try {
     const relativeQueryPath = req.query.path;
     if (!relativeQueryPath) {
       return res.status(400).json({ error: 'Path is required' });
     }
-    
+
     const absolutePath = safeResolve(relativeQueryPath);
-    
+
     // Do not allow deleting the root directory itself
     if (absolutePath === rootDir) {
       return res.status(400).json({ error: 'Cannot delete the root directory' });
     }
-    
+
     const stats = await fs.promises.stat(absolutePath);
-    
+
     if (stats.isDirectory()) {
       await fs.promises.rm(absolutePath, { recursive: true, force: true });
     } else {
       await fs.promises.unlink(absolutePath);
     }
-    
+
     res.json({ success: true, message: 'Deleted successfully' });
   } catch (error) {
     console.error('Error deleting:', error);
@@ -193,10 +208,12 @@ app.delete('/api/delete', async (req, res) => {
 });
 
 // Start the server
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Remote File Viewer is online!`);
+  let startupUrl = `http://localhost:${PORT}`;
+
+
   console.log(`🔗 Local:            http://localhost:${PORT}`);
-  
   // Try to print the local IP address for easy access from other devices
   const { networkInterfaces } = require('os');
   const nets = networkInterfaces();
@@ -204,9 +221,23 @@ app.listen(PORT, '0.0.0.0', () => {
     for (const net of nets[name]) {
       // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
       if (net.family === 'IPv4' && !net.internal) {
+        startupUrl = `http://${net.address}:${PORT}`
         console.log(`🔗 On network link:  http://${net.address}:${PORT}`);
+        try {
+          const src = await QRCode.toDataURL(startupUrl);
+          // console.log('📱 QR Code (data URL):', src);
+        } catch (err) {
+          console.error('QR generation error at startup:', err);
+        }
+        // Print QR code to terminal
+        QRCodeTerminal.generate(startupUrl, { small: true }, qr => {
+          console.log('\n--- QR code (terminal) ---');
+          console.log(qr);
+          console.log('--- end QR code ---\n');
+        });
       }
     }
   }
+
   console.log(`\nPress Ctrl+C to stop the server.`);
 });
