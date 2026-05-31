@@ -15,6 +15,10 @@ const btnListView = document.getElementById('btn-list-view');
 const btnBack = document.getElementById('btn-back');
 const folderStats = document.getElementById('folder-stats');
 const hostNameSpan = document.getElementById('host-name');
+const sizeSelect = document.getElementById('size-select');
+
+// Application State Extensions
+let currentSize = 'medium'; // 'small', 'medium', 'large'
 
 // Preview Modal Elements
 const previewModal = document.getElementById('preview-modal');
@@ -72,7 +76,7 @@ function formatSize(bytes) {
 }
 
 // Fetch files in directory
-async function fetchDirectory(pathStr = '') {
+async function fetchDirectory(pathStr = '', updateHash = true) {
   showLoader();
   try {
     const res = await fetch(`/api/files?path=${encodeURIComponent(pathStr)}`);
@@ -86,6 +90,11 @@ async function fetchDirectory(pathStr = '') {
     // Manage Go Back state
     btnBack.disabled = (currentPath === '');
     
+    // Sync hash
+    if (updateHash) {
+      window.location.hash = currentPath;
+    }
+    
     renderBreadcrumbs();
     processAndRenderFiles();
   } catch (error) {
@@ -94,7 +103,7 @@ async function fetchDirectory(pathStr = '') {
       <div class="empty-container">
         <div class="empty-icon">❌</div>
         <p>Error loading files: ${error.message}</p>
-        <button class="btn btn-glass" style="margin-top:16px;" onclick="fetchDirectory('')">Return to Root</button>
+        <button class="btn btn-glass" style="margin-top:16px;" onclick="window.location.hash = ''">Return to Root</button>
       </div>
     `;
   }
@@ -164,7 +173,7 @@ function renderBreadcrumbs() {
   rootCrumb.className = `crumb ${currentPath === '' ? 'active' : ''}`;
   rootCrumb.textContent = 'Root';
   rootCrumb.addEventListener('click', () => {
-    if (currentPath !== '') fetchDirectory('');
+    if (currentPath !== '') window.location.hash = '';
   });
   breadcrumbs.appendChild(rootCrumb);
   
@@ -190,14 +199,82 @@ function renderBreadcrumbs() {
     
     const targetPath = accumulatedPath; // lock path string scope
     crumb.addEventListener('click', () => {
-      if (currentPath !== targetPath) fetchDirectory(targetPath);
+      if (currentPath !== targetPath) window.location.hash = targetPath;
     });
     
     breadcrumbs.appendChild(crumb);
   });
 }
 
-// Render folder/file cards to explorer view
+// --- Multi‑Select Delete Support ---
+// Global selection state
+let selectedItems = [];
+const batchDeleteBtn = document.getElementById('btn-batch-delete');
+
+function updateBatchDeleteBtn() {
+  if (selectedItems.length > 0) {
+    batchDeleteBtn.style.display = 'inline-flex';
+    batchDeleteBtn.textContent = `Delete (${selectedItems.length})`;
+  } else {
+    batchDeleteBtn.style.display = 'none';
+  }
+}
+
+function toggleSelection(item, card) {
+  const index = selectedItems.findIndex(i => i.path === item.path);
+  if (index === -1) {
+    selectedItems.push(item);
+    card.classList.add('selected');
+  } else {
+    selectedItems.splice(index, 1);
+    card.classList.remove('selected');
+  }
+  updateBatchDeleteBtn();
+}
+
+// Long press detection (≈500 ms)
+function attachLongPress(card, item) {
+  let pressTimer = null;
+  const start = (e) => {
+    // Prevent default navigation on long press
+    e.stopPropagation();
+    pressTimer = setTimeout(() => {
+      toggleSelection(item, card);
+    }, 500);
+  };
+  const cancel = () => {
+    clearTimeout(pressTimer);
+  };
+  card.addEventListener('mousedown', start);
+  card.addEventListener('touchstart', start);
+  card.addEventListener('mouseup', cancel);
+  card.addEventListener('mouseleave', cancel);
+  card.addEventListener('touchend', cancel);
+  card.addEventListener('touchcancel', cancel);
+}
+
+// Batch delete handler
+batchDeleteBtn.addEventListener('click', async () => {
+  if (selectedItems.length === 0) return;
+  const confirmMsg = selectedItems.length === 1
+    ? `Delete "${selectedItems[0].name}" permanently? This cannot be undone.`
+    : `Delete ${selectedItems.length} items permanently? This cannot be undone.`;
+  if (!window.confirm(confirmMsg)) return;
+
+  try {
+    for (const itm of selectedItems) {
+      await fetch(`/api/delete?path=${encodeURIComponent(itm.path)}`, { method: 'DELETE' });
+    }
+    // Refresh view
+    await fetchDirectory(currentPath);
+  } catch (err) {
+    alert('Error during batch delete: ' + err.message);
+  } finally {
+    selectedItems = [];
+    updateBatchDeleteBtn();
+  }
+});
+
 function renderFiles() {
   explorerView.innerHTML = '';
   
@@ -211,18 +288,37 @@ function renderFiles() {
     return;
   }
   
-  // Set class for grid or list view
-  explorerView.className = currentView === 'grid' ? 'grid-view' : 'list-view';
+  // Set class for grid or list view and size configurations
+  if (currentView === 'grid') {
+    explorerView.className = `grid-view view-size-${currentSize}`;
+    document.body.classList.remove('list-mode');
+  } else {
+    explorerView.className = 'list-view';
+    document.body.classList.add('list-mode');
+  }
   
   filteredFilesList.forEach(item => {
     const { emoji, category } = getFileIconAndCategory(item.name, item.isDirectory);
     
+    // Determine icon layout (use live image/video thumbnail)
+    let iconHtml = `<span class="card-icon">${emoji}</span>`;
+    if (category === 'image') {
+      const imageUrl = `/api/view?path=${encodeURIComponent(item.path)}`;
+      iconHtml = `<img class="card-thumb" src="${imageUrl}" alt="${item.name}">`;
+    } else if (category === 'video') {
+      const videoUrl = `/api/view?path=${encodeURIComponent(item.path)}#t=0.1`;
+      iconHtml = `<video class="card-thumb" src="${videoUrl}" muted playsinline preload="metadata"></video>`;
+    }
+
     const card = document.createElement('div');
     card.className = `file-card ${item.isDirectory ? 'directory-card' : ''}`;
     
+    // Attach long‑press selection to each card
+    attachLongPress(card, item);
+
     // HTML contents of card
     card.innerHTML = `
-      <span class="card-icon">${emoji}</span>
+      ${iconHtml}
       <span class="card-name" title="${item.name}">${item.name}</span>
       <span class="card-meta">
         ${item.isDirectory ? 'Folder' : formatSize(item.size)}
@@ -254,7 +350,7 @@ function renderFiles() {
       }
       
       if (item.isDirectory) {
-        fetchDirectory(item.path);
+        window.location.hash = item.path;
       } else {
         openPreview(item, category);
       }
@@ -398,7 +494,7 @@ btnBack.addEventListener('click', () => {
   const parts = currentPath.split('/');
   parts.pop();
   const parentPath = parts.join('/');
-  fetchDirectory(parentPath);
+  window.location.hash = parentPath;
 });
 
 searchInput.addEventListener('input', () => {
@@ -406,6 +502,11 @@ searchInput.addEventListener('input', () => {
 });
 
 sortSelect.addEventListener('change', () => {
+  processAndRenderFiles();
+});
+
+sizeSelect.addEventListener('change', () => {
+  currentSize = sizeSelect.value;
   processAndRenderFiles();
 });
 
@@ -437,5 +538,14 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+// Listen for URL hash changes (handles back/forward browser history)
+window.addEventListener('hashchange', () => {
+  const hashPath = decodeURIComponent(window.location.hash.substring(1)) || '';
+  if (currentPath !== hashPath) {
+    fetchDirectory(hashPath, false);
+  }
+});
+
 // Initialize on page load
-fetchDirectory('');
+const initialHash = decodeURIComponent(window.location.hash.substring(1)) || '';
+fetchDirectory(initialHash, false);

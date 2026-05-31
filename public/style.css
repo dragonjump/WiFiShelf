@@ -375,12 +375,11 @@ body {
   overflow: hidden;
 }
 
-.file-card:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+.file-card.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 12px var(--primary-glow);
 }
+
 
 .file-card.directory-card {
   border-left: 3px solid var(--primary);
@@ -724,3 +723,132 @@ body {
 .text-danger {
   color: var(--danger);
 }
+
+/* Image Thumbnail Preview Styles */
+.card-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 12px;
+  user-select: none;
+  pointer-events: none;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.file-card:hover .card-thumb {
+  transform: scale(1.05);
+}
+
+/* List View overrides for Thumbnails */
+.list-view .card-thumb {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 0;
+  margin-right: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Hide Icon Size controls when in List Mode */
+body.list-mode #size-select-wrapper {
+  display: none;
+}
+
+/* --- Dynamic Icon Size Variants for Grid View --- */
+
+/* 1. Small View Size Variant */
+.grid-view.view-size-small {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+.grid-view.view-size-small .file-card {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+}
+.grid-view.view-size-small .card-thumb {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.grid-view.view-size-small .card-icon {
+  font-size: 28px;
+  margin-bottom: 6px;
+}
+.grid-view.view-size-small .card-name {
+  font-size: 12px;
+}
+
+/* 2. Medium View Size Variant (Default Grid Styling) */
+.grid-view.view-size-medium {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+.grid-view.view-size-medium .file-card {
+  padding: 16px;
+}
+.grid-view.view-size-medium .card-thumb {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 12px;
+}
+.grid-view.view-size-medium .card-icon {
+  font-size: 42px;
+  margin-bottom: 12px;
+}
+.grid-view.view-size-medium .card-name {
+  font-size: 14px;
+}
+
+/* 3. Large View Size Variant */
+.grid-view.view-size-large {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+.grid-view.view-size-large .file-card {
+  padding: 24px;
+}
+.grid-view.view-size-large .card-thumb {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 16px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+}
+.grid-view.view-size-large .card-icon {
+  font-size: 72px;
+  margin-bottom: 16px;
+}
+.grid-view.view-size-large .card-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 4. Extra Extra Large View Size Variant (XXL) */
+.grid-view.view-size-xxlarge {
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 24px;
+}
+.grid-view.view-size-xxlarge .file-card {
+  padding: 32px;
+}
+.grid-view.view-size-xxlarge .card-thumb {
+  width: 280px;
+  height: 180px;
+  object-fit: cover;
+  margin-bottom: 20px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.55);
+}
+.grid-view.view-size-xxlarge .card-icon {
+  font-size: 110px;
+  margin-bottom: 20px;
+}
+.grid-view.view-size-xxlarge .card-name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+
+

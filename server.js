@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 3004;
+const PORT = process.env.PORT || 3005;
 
 // Determine target root directory:
 // 1. First command line argument
@@ -30,6 +30,31 @@ function safeResolve(reqPath) {
   
   return resolved;
 }
+
+// HTTP Basic Authentication Configuration
+const AUTH_USER = process.env.AUTH_USER || 'sean';
+const AUTH_PASS = process.env.AUTH_PASS || 'sean';
+
+function basicAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    res.setHeader('WWW-Authenticate', 'Basic realm="Secure Remote File Viewer"');
+    return res.status(401).send('Authentication Required');
+  }
+
+  const credentialsStr = Buffer.from(authHeader.split(' ')[1], 'base64').toString();
+  const [user, pass] = credentialsStr.split(':');
+
+  if (user === AUTH_USER && pass === AUTH_PASS) {
+    return next();
+  }
+
+  res.setHeader('WWW-Authenticate', 'Basic realm="Secure Remote File Viewer"');
+  return res.status(401).send('Access Denied: Incorrect Credentials');
+}
+
+// Apply Basic Auth protecting all paths & endpoints
+app.use(basicAuth);
 
 // Serve public frontend files
 app.use(express.static(path.join(__dirname, 'public')));
