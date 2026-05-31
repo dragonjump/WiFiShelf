@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const app = express();
 const PORT = process.env.PORT || 3005;
@@ -8,8 +9,8 @@ const PORT = process.env.PORT || 3005;
 // Determine target root directory:
 // 1. First command line argument
 // 2. Environment variable SERVE_DIR
-// 3. Fallback to current working directory
-let rootDir = process.argv[2] || process.env.SERVE_DIR || process.cwd();
+// 3. Fallback to User Home Directory (Cross-platform default)
+let rootDir = process.argv[2] || process.env.SERVE_DIR || os.homedir();
 rootDir = path.resolve(rootDir);
 
 console.log(`\n==================================================`);
@@ -58,6 +59,34 @@ app.use(basicAuth);
 
 // Serve public frontend files
 app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'allow' }));
+
+// API: Get current config (like current root directory path)
+app.get('/api/config', (req, res) => {
+  res.json({ rootDir });
+});
+
+// API: Dynamically change root directory at runtime
+app.post('/api/config/root', express.json(), (req, res) => {
+  const { newPath } = req.body;
+  if (!newPath) return res.status(400).json({ error: 'Path is required' });
+  
+  try {
+    const resolvedPath = path.resolve(newPath);
+    if (!fs.existsSync(resolvedPath)) {
+      return res.status(400).json({ error: 'Directory does not exist' });
+    }
+    const stats = fs.statSync(resolvedPath);
+    if (!stats.isDirectory()) {
+      return res.status(400).json({ error: 'Path must be a directory' });
+    }
+    
+    rootDir = resolvedPath;
+    console.log(`🔄 Root directory dynamically changed to: ${rootDir}`);
+    res.json({ success: true, rootDir });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // API: List files in directory
 app.get('/api/files', async (req, res) => {

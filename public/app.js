@@ -38,6 +38,207 @@ const deleteCancel = document.getElementById('delete-cancel');
 // Set connection host display based on current window location
 hostNameSpan.textContent = `Server: ${window.location.host}`;
 
+// --- Theme Toggle Logic ---
+const btnThemeToggle = document.getElementById('btn-theme-toggle');
+const currentTheme = localStorage.getItem('theme') || 'dark';
+
+if (currentTheme === 'light') {
+  document.body.classList.add('light-theme');
+  updateThemeIcon(true);
+} else {
+  updateThemeIcon(false);
+}
+
+btnThemeToggle.addEventListener('click', () => {
+  const isLight = document.body.classList.toggle('light-theme');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  updateThemeIcon(isLight);
+});
+
+function updateThemeIcon(isLight) {
+  if (isLight) {
+    btnThemeToggle.innerHTML = `
+      <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    `;
+  } else {
+    btnThemeToggle.innerHTML = `
+      <svg class="theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+    `;
+  }
+}
+
+
+// --- Served Folder Dynamic Config Logic ---
+const btnChangeRoot = document.getElementById('btn-change-root');
+const currentRootDisplay = document.getElementById('current-root-display');
+let currentRootPath = '';
+
+// --- Sidebar Navigation Tree Logic ---
+const treeRootContainer = document.getElementById('tree-root-container');
+
+function getBaseName(fullPath) {
+  const parts = fullPath.replace(/\\/g, '/').split('/');
+  return parts.pop() || parts.pop() || fullPath; // Handles trailing slashes or drive roots
+}
+
+function createTreeNodeElement(name, path, hasChildren = true) {
+  const node = document.createElement('div');
+  node.className = 'tree-node';
+  node.dataset.path = path;
+
+  const row = document.createElement('div');
+  row.className = 'tree-node-row';
+  if (path === currentPath) row.classList.add('active');
+
+  const toggle = document.createElement('span');
+  toggle.className = `tree-toggle ${hasChildren ? '' : 'empty'}`;
+  toggle.innerHTML = '▶';
+
+  const icon = document.createElement('span');
+  icon.className = 'tree-folder-icon';
+  icon.textContent = '📁';
+
+  const label = document.createElement('span');
+  label.className = 'tree-label';
+  label.textContent = name;
+  label.title = name;
+
+  row.appendChild(toggle);
+  row.appendChild(icon);
+  row.appendChild(label);
+  node.appendChild(row);
+
+  const childrenContainer = document.createElement('div');
+  childrenContainer.className = 'tree-children';
+  childrenContainer.style.display = 'none';
+  node.appendChild(childrenContainer);
+
+  // Toggle expand / collapse
+  toggle.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (toggle.classList.contains('empty')) return;
+
+    const isExpanded = toggle.classList.contains('expanded');
+    if (isExpanded) {
+      toggle.classList.remove('expanded');
+      childrenContainer.style.display = 'none';
+    } else {
+      toggle.classList.add('expanded');
+      childrenContainer.style.display = 'block';
+      
+      // Lazy load subfolders if container is empty
+      if (childrenContainer.childElementCount === 0) {
+        childrenContainer.innerHTML = '<div style="font-size:11px; padding:4px 12px; color:var(--text-muted);">Loading...</div>';
+        const subfolders = await fetchSubfolders(path);
+        childrenContainer.innerHTML = '';
+        if (subfolders.length === 0) {
+          toggle.classList.add('empty');
+        } else {
+          subfolders.forEach(sub => {
+            const childNode = createTreeNodeElement(sub.name, sub.path, true);
+            childrenContainer.appendChild(childNode);
+          });
+        }
+      }
+    }
+  });
+
+  // Navigate on clicking node row
+  row.addEventListener('click', () => {
+    window.location.hash = path;
+  });
+
+  return node;
+}
+
+// Fetch subfolders of specified directory
+async function fetchSubfolders(pathStr) {
+  try {
+    const res = await fetch(`/api/files?path=${encodeURIComponent(pathStr)}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    return data.files.filter(f => f.isDirectory);
+  } catch (err) {
+    console.error('Error fetching tree subfolders:', err);
+    return [];
+  }
+}
+
+// Set up / rebuild the navigation tree
+async function refreshNavigationTree() {
+  if (!treeRootContainer) return;
+  treeRootContainer.innerHTML = '';
+  
+  // Build and insert top root node
+  const rootNode = createTreeNodeElement('Root Folder', '', true);
+  treeRootContainer.appendChild(rootNode);
+  
+  // Auto-expand the top-level root
+  const rootToggle = rootNode.querySelector('.tree-toggle');
+  if (rootToggle) rootToggle.click();
+}
+
+// Sync current highlighted directory node in tree view
+function updateTreeActiveHighlight() {
+  document.querySelectorAll('.tree-node-row').forEach(row => {
+    const node = row.closest('.tree-node');
+    if (node && node.dataset.path === currentPath) {
+      row.classList.add('active');
+    } else {
+      row.classList.remove('active');
+    }
+  });
+}
+
+async function loadRootConfig() {
+  try {
+    const res = await fetch('/api/config');
+    const data = await res.json();
+    currentRootPath = data.rootDir;
+    currentRootDisplay.textContent = getBaseName(currentRootPath);
+    btnChangeRoot.title = `Serving: ${currentRootPath}`;
+    
+    // Initialize/Refresh tree view
+    refreshNavigationTree();
+  } catch (err) {
+    console.error('Failed to load root path configuration:', err);
+  }
+}
+
+btnChangeRoot.addEventListener('click', async () => {
+  const newPath = prompt("Enter the absolute folder path you want to manage:", currentRootPath);
+  if (newPath && newPath.trim() !== currentRootPath) {
+    try {
+      const res = await fetch('/api/config/root', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPath: newPath.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to change root directory');
+      
+      currentRootPath = data.rootDir;
+      currentRootDisplay.textContent = getBaseName(currentRootPath);
+      btnChangeRoot.title = `Serving: ${currentRootPath}`;
+      window.location.hash = ''; // Reset navigation hash back to root
+      
+      // Rebuild tree from new root
+      refreshNavigationTree();
+      fetchDirectory(''); // Fetch new directory files
+    } catch (err) {
+      alert("Error changing served directory: " + err.message);
+    }
+  }
+});
+
+// Load config immediately on page load
+loadRootConfig();
+
+
 // File Extension Configurations & Emojis
 const FILE_TYPES = {
   // Videos
@@ -97,6 +298,7 @@ async function fetchDirectory(pathStr = '', updateHash = true) {
     
     renderBreadcrumbs();
     processAndRenderFiles();
+    updateTreeActiveHighlight();
   } catch (error) {
     console.error('Error fetching directory:', error);
     explorerView.innerHTML = `
@@ -307,7 +509,7 @@ function renderFiles() {
       iconHtml = `<img class="card-thumb" src="${imageUrl}" alt="${item.name}">`;
     } else if (category === 'video') {
       const videoUrl = `/api/view?path=${encodeURIComponent(item.path)}#t=0.1`;
-      iconHtml = `<video class="card-thumb" src="${videoUrl}" muted playsinline preload="metadata"></video>`;
+      iconHtml = `<video class="card-thumb" src="${videoUrl}" muted playsinline loop preload="metadata"></video>`;
     }
 
     const card = document.createElement('div');
@@ -319,7 +521,17 @@ function renderFiles() {
     // HTML contents of card
     card.innerHTML = `
       ${iconHtml}
-      <span class="card-name" title="${item.name}">${item.name}</span>
+      <div class="card-name-container">
+        <span class="card-name" title="${item.name}">${item.name}</span>
+        ${category === 'video' ? `
+          <button class="btn-eye-preview" title="Preview video">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        ` : ''}
+      </div>
       <span class="card-meta">
         ${item.isDirectory ? 'Folder' : formatSize(item.size)}
       </span>
@@ -348,6 +560,11 @@ function renderFiles() {
         downloadFile(item);
         return;
       }
+      if (e.target.closest('.btn-eye-preview')) {
+        e.stopPropagation();
+        toggleVideoPreview(card, e.target.closest('.btn-eye-preview'));
+        return;
+      }
       
       if (item.isDirectory) {
         window.location.hash = item.path;
@@ -358,6 +575,32 @@ function renderFiles() {
     
     explorerView.appendChild(card);
   });
+}
+
+// Toggle loop-play for video thumbnail
+function toggleVideoPreview(card, eyeBtn) {
+  const video = card.querySelector('video.card-thumb');
+  if (!video) return;
+
+  if (video.paused) {
+    // Pause other playing previews first for performance
+    document.querySelectorAll('video.card-thumb').forEach(v => {
+      if (v !== video && !v.paused) {
+        v.pause();
+        const otherCard = v.closest('.file-card');
+        if (otherCard) {
+          const otherEye = otherCard.querySelector('.btn-eye-preview');
+          if (otherEye) otherEye.classList.remove('active');
+        }
+      }
+    });
+
+    video.play().catch(err => console.error('Error playing video preview:', err));
+    eyeBtn.classList.add('active');
+  } else {
+    video.pause();
+    eyeBtn.classList.remove('active');
+  }
 }
 
 // Download file handler
@@ -539,6 +782,54 @@ window.addEventListener('keydown', (e) => {
 });
 
 // Listen for URL hash changes (handles back/forward browser history)
+// Tree Search filtering
+const treeSearchInput = document.getElementById('tree-search-input');
+if (treeSearchInput) {
+  // Debounce input to avoid excessive processing
+  let treeSearchTimer = null;
+  treeSearchInput.addEventListener('input', () => {
+    clearTimeout(treeSearchTimer);
+    treeSearchTimer = setTimeout(() => {
+      filterTree(treeSearchInput.value.trim().toLowerCase());
+    }, 200);
+  });
+}
+
+function filterTree(query) {
+  // Always show root node
+  const rootNodes = Array.from(treeRootContainer.children);
+  rootNodes.forEach(root => filterTreeNode(root, query, true));
+}
+
+function filterTreeNode(node, query, isRoot = false) {
+  const labelEl = node.querySelector('.tree-label');
+  const label = labelEl ? labelEl.textContent.toLowerCase() : '';
+  const childrenContainer = node.querySelector('.tree-children');
+  let childMatches = false;
+  if (childrenContainer && childrenContainer.children.length > 0) {
+    const childNodes = Array.from(childrenContainer.children);
+    childNodes.forEach(child => {
+      const childMatch = filterTreeNode(child, query, false);
+      if (childMatch) childMatches = true;
+    });
+  }
+  const selfMatch = isRoot || label.includes(query);
+  const shouldShow = selfMatch || childMatches;
+  node.style.display = shouldShow ? '' : 'none';
+  // Auto‑expand if there are matching descendants
+  const toggle = node.querySelector('.tree-toggle');
+  if (toggle && childrenContainer) {
+    if (childMatches) {
+      toggle.classList.add('expanded');
+      childrenContainer.style.display = 'block';
+    } else if (!selfMatch) {
+      toggle.classList.remove('expanded');
+      childrenContainer.style.display = 'none';
+    }
+  }
+  return shouldShow;
+}
+
 window.addEventListener('hashchange', () => {
   const hashPath = decodeURIComponent(window.location.hash.substring(1)) || '';
   if (currentPath !== hashPath) {
