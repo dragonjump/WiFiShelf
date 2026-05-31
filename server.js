@@ -4,6 +4,16 @@ const fs = require('fs');
 const os = require('os');
 const QRCode = require('qrcode');
 const QRCodeTerminal = require('qrcode-terminal');
+
+const mime = require('mime-types');
+
+// Load optional config.json for default root directory
+let config = {};
+try {
+  config = require('./config.json');
+} catch (e) {
+  // No config file – ignore
+}
 const app = express();
 
 const PORT = process.env.PORT || 3006;
@@ -11,8 +21,9 @@ const PORT = process.env.PORT || 3006;
 // Determine target root directory:
 // 1. First command line argument
 // 2. Environment variable SERVE_DIR
-// 3. Fallback to User Home Directory (Cross-platform default)
-let rootDir = process.argv[2] || process.env.SERVE_DIR || os.homedir();
+// 3. config.defaultRoot (if provided)
+// 4. User Home Directory (Cross-platform default)
+let rootDir = process.argv[2] || process.env.SERVE_DIR || config.defaultRoot || os.homedir();
 rootDir = path.resolve(rootDir);
 
 console.log(`\n==================================================`);
@@ -39,8 +50,14 @@ const AUTH_USER = process.env.AUTH_USER || 'sean';
 const AUTH_PASS = process.env.AUTH_PASS || 'sean';
 
 function basicAuth(req, res, next) {
-  // Bypass auth for video streaming endpoint
-  if (req.path.startsWith('/api/view')) {
+  // Bypass auth for API view, video directory, root, and static assets
+  const publicAsset = /\.(html?|css|js|png|svg|jpg|jpeg|gif|ico|json)$/i;
+  if (
+    req.path.startsWith('/api/view') ||
+    req.path.startsWith('/videos') ||
+    req.path === '/' ||
+    publicAsset.test(req.path)
+  ) {
     return next();
   }
   const authHeader = req.headers.authorization;
@@ -60,11 +77,22 @@ function basicAuth(req, res, next) {
   return res.status(401).send('Access Denied: Incorrect Credentials');
 }
 
-// Apply Basic Auth protecting all paths & endpoints
+// Serve public frontend files (HTML, CSS, JS) before auth
+app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html', 'htm'], index: 'index.html' }));
+
+// Apply Basic Auth protecting all other paths and endpoints
 app.use(basicAuth);
 
-// Serve public frontend files
-app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'allow' }));
+// Serve video files with range support
+app.use('/videos', express.static(rootDir, {
+  extensions: ['mp4', 'webm', 'ogg'],
+  setHeaders: (res, path) => {
+    // Enable range requests for efficient parallel chunk loading
+    res.setHeader('Accept-Ranges', 'bytes');
+    // Short cache for video content
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+  }
+}));
 
 // API: Get current config (like current root directory path)
 app.get('/api/config', (req, res) => {
@@ -140,7 +168,6 @@ app.get('/api/files', async (req, res) => {
   }
 });
 
-// API: View/Stream File (express automatically handles range requests via res.sendFile)
 app.get('/api/view', (req, res) => {
   try {
     const relativeQueryPath = req.query.path;
@@ -152,23 +179,25 @@ app.get('/api/view', (req, res) => {
     if (stats.isDirectory()) {
       return res.status(400).json({ error: 'Cannot view a directory' });
     }
-    // Determine MIME type based on file extension
-    const mime = require('mime-types');
+    // Start timing
+  const startTime = Date.now();
+  // Use on-finished to capture when response ends
+  const onFinished = require('on-finished');
+  onFinished(res, (err, res) => {
+    const duration = Date.now() - startTime;
+    console.log(`[TIMING] Served ${relativeQueryPath} in ${duration}ms`);
+  });
     const contentType = mime.lookup(absoluteFilePath) || 'application/octet-stream';
-    // Set caching headers for static assets
-    res.setHeader('Cache-Control', 'public, max-age=31536000');
-    // Stream the file with proper headers; Express handles range requests automatically
-    res.sendFile(absoluteFilePath, {
-      headers: {
-        'Content-Type': contentType,
-        'Accept-Ranges': 'bytes'
-      }
-    });
+    // Set essential headers; Express' sendFile will handle range requests automatically
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.sendFile(absoluteFilePath);
   } catch (error) {
     console.error('Error viewing file:', error);
     res.status(500).json({ error: error.message });
   }
 });
+
 
 
 // API: Generate QR code for server URL (default to localhost)

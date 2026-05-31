@@ -54,11 +54,14 @@ WifiShelf/                     ← project root (your repo)
    ```
 
 3. **Configure the shared folder**
-   - Open `server.js`.
-   - Locate the line that defines `BASE_PATH` (near the top) and replace the default path with **your own** absolute path, e.g.:
-     ```js
-     const BASE_PATH = "C:/path/to/your/wifiShelf"; // ← change this
-     ```
+   - Edit `config.json` (created automatically) and set `"defaultRoot"` to the absolute path you want to share, e.g.:
+
+```json
+{
+  "defaultRoot": "C:/path/to/your/wifiShelf"
+}
+```
+   - No need to edit `server.js`; it will read this config at startup.
    - Save the file.
 
 4. **Run the server** – choose the script that matches your OS:
@@ -113,6 +116,21 @@ All scripts simply execute `npm start` (which runs `node server.js`) and display
 - **Authentication** – edit the Basic‑Auth middleware in `server.js` to use your own users or disable it entirely.
 - **Styling** – adjust colors, fonts, or glass‑morphism effects in `public/style.css`.
 - **Front‑end behaviour** – the client side lives in `public/app.js` – feel free to extend features (e.g., drag‑and‑drop upload).
+
+---
+## Build the Packaged Executable
+
+The project can be bundled into a single Windows executable using **pkg**.
+
+```bash
+# Install pkg globally (if not already)
+npm install -g pkg   # or `npm install --save-dev pkg` as a dev dependency
+
+# Build the .exe (see package.json script `build:exe`)
+npm run build:exe
+
+# The resulting file `WifiShelf-win.exe` will be placed in the project root.
+```
 
 ---
 

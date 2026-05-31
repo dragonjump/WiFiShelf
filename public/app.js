@@ -521,10 +521,12 @@ function renderFiles() {
     let iconHtml = `<span class="card-icon">${emoji}</span>`;
     if (category === 'image') {
       const imageUrl = `/api/view?path=${encodeURIComponent(item.path)}`;
-      iconHtml = `<img class="card-thumb" src="${imageUrl}" alt="${item.name}">`;
+      // Lazy load images: use data-src and loading="lazy"
+      iconHtml = `<img class="card-thumb image-lazy" data-src="${imageUrl}" alt="${item.name}" loading="lazy">`;
     } else if (category === 'video') {
       const videoUrl = `/api/view?path=${encodeURIComponent(item.path)}#t=0.1`;
-      iconHtml = `<video class="card-thumb" src="${videoUrl}" muted playsinline loop preload="metadata"></video>`;
+      // Use lazy loading: set data-src, not src, to defer download until visible
+      iconHtml = `<video class="card-thumb video-lazy" data-src="${videoUrl}" muted playsinline loop preload="metadata"></video>`;
     }
 
     const card = document.createElement('div');
@@ -754,6 +756,36 @@ btnBack.addEventListener('click', () => {
   const parentPath = parts.join('/');
   window.location.hash = parentPath;
 });
+
+// Lazy‑load media thumbnails when they enter the viewport
+function observeLazyMedia() {
+  const lazyObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        const src = el.dataset.src;
+        if (src) {
+          if (el.tagName.toLowerCase() === 'img') {
+            el.src = src;
+          } else if (el.tagName.toLowerCase() === 'video') {
+            el.src = src;
+          }
+          delete el.dataset.src;
+        }
+        observer.unobserve(el);
+      }
+    });
+  }, { rootMargin: '200px' });
+
+  document.querySelectorAll('img.image-lazy, video.video-lazy').forEach(el => lazyObserver.observe(el));
+}
+
+// Hook into file rendering to apply lazy observation
+const originalProcessAndRenderFiles = processAndRenderFiles;
+processAndRenderFiles = function () {
+  originalProcessAndRenderFiles();
+  observeLazyMedia();
+};
 
 searchInput.addEventListener('input', () => {
   processAndRenderFiles();
