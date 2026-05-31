@@ -1,5 +1,5 @@
 {
-  "name": "file-sync-preview",
+  "name": "WifiShelf",
   "version": "1.0.0",
   "description": "A lightweight remote file viewer and manager built in Node.js",
   "main": "server.js",

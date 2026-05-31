@@ -57,7 +57,7 @@ function basicAuth(req, res, next) {
 app.use(basicAuth);
 
 // Serve public frontend files
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'allow' }));
 
 // API: List files in directory
 app.get('/api/files', async (req, res) => {

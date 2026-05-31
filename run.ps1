@@ -6,5 +6,5 @@ Write-Host "==================================================" -ForegroundColor
 npx kill-port 3005
 
 # Run the node app serving D:\
-Set-Location "c:\Users\Acer\OneDrive\Documents\GitHub\file-sync-preview"
+Set-Location "c:\Users\Acer\OneDrive\Documents\GitHub\WifiShelf"
 node server.js "d:\"
