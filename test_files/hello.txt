@@ -1,0 +1,2 @@
+Hello from the Remote File Viewer! This is a simple sample text file.
+It works perfectly!

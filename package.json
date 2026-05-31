@@ -1,0 +1,15 @@
+{
+  "name": "file-sync-preview",
+  "version": "1.0.0",
+  "description": "A lightweight remote file viewer and manager built in Node.js",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "author": "Antigravity",
+  "license": "ISC"
+}

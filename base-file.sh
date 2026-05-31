@@ -1,0 +1,1 @@
+npx kill-port 3004 && cd "c:/Users/Acer/OneDrive/Documents/GitHub/file-sync-preview" && node server.js "c:/"
