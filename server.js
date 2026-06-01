@@ -85,7 +85,7 @@ app.use(basicAuth);
 
 // Serve video files with range support
 app.use('/videos', express.static(rootDir, {
-  extensions: ['mp4', 'webm', 'ogg'],
+  extensions: ['mp4', 'webm', 'ogg', 'avi', 'mov', 'flv'],
   setHeaders: (res, path) => {
     // Enable range requests for efficient parallel chunk loading
     res.setHeader('Accept-Ranges', 'bytes');

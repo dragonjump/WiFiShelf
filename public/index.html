@@ -11,6 +11,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <!-- CSS Stylesheet -->
   <link rel="stylesheet" href="style.css">
+  <!-- Favicon – logo icon -->
+  <link rel="icon" type="image/png" href="image.png">
 </head>
 
 <body>
@@ -47,7 +49,8 @@
         <div class="stats-area" id="connections-info">
           <span class="status-dot online"></span>
           <span id="host-name"></span>
-          <img id="qr-code-img" alt="QR Code" title="Scan to open" style="height:24px;margin-left:8px;vertical-align:middle;cursor:pointer;" src=""/>
+          <img id="qr-code-img" alt="QR Code" title="Scan to open"
+            style="height:24px;margin-left:8px;vertical-align:middle;cursor:pointer;" src="" />
         </div>
       </div>
     </header>
@@ -81,27 +84,27 @@
 
         <!-- Sort Select -->
         <div class="select-wrapper">
-  <select id="sort-select">
-    <option value="name-asc">Sort: Name (A-Z)</option>
-    <option value="name-desc">Sort: Name (Z-A)</option>
-    <option value="size-asc">Sort: Size (Smallest)</option>
-    <option value="size-desc">Sort: Size (Largest)</option>
-    <option value="date-desc">Sort: Date (Newest)</option>
-    <option value="date-asc">Sort: Date (Oldest)</option>
-    <option value="type-asc">Sort: Type (A-Z)</option>
-  </select>
-</div>
-<div class="select-wrapper">
-  <select id="type-filter">
-    <option value="all">All Types</option>
-    <option value="video">Videos (mp4, avi, …)</option>
-    <option value="audio">Audio</option>
-    <option value="image">Images (jpg, png, …)</option>
-    <option value="document">Documents (pdf)</option>
-    <option value="code">Code</option>
-    <option value="archive">Archives</option>
-  </select>
-</div>
+          <select id="sort-select">
+            <option value="name-asc">Sort: Name (A-Z)</option>
+            <option value="name-desc">Sort: Name (Z-A)</option>
+            <option value="size-asc">Sort: Size (Smallest)</option>
+            <option value="size-desc">Sort: Size (Largest)</option>
+            <option value="date-desc">Sort: Date (Newest)</option>
+            <option value="date-asc">Sort: Date (Oldest)</option>
+            <option value="type-asc">Sort: Type (A-Z)</option>
+          </select>
+        </div>
+        <div class="select-wrapper">
+          <select id="type-filter">
+            <option value="all">All Types</option>
+            <option value="video">Videos (mp4, avi, …)</option>
+            <option value="audio">Audio</option>
+            <option value="image">Images (jpg, png, …)</option>
+            <option value="document">Documents (pdf)</option>
+            <option value="code">Code</option>
+            <option value="archive">Archives</option>
+          </select>
+        </div>
 
         <!-- Size Select -->
         <div class="select-wrapper" id="size-select-wrapper">
@@ -144,16 +147,16 @@
     <main class="app-main-layout">
       <!-- Sidebar Tree Panel -->
       <aside class="sidebar-tree">
-  <h3>
-    <span>🌳</span> Navigation Tree
-  </h3>
-  <div class="tree-search">
-    <input type="text" id="tree-search-input" placeholder="Search tree..." />
-  </div>
-  <div class="tree-container" id="tree-root-container">
-    <!-- Dynamically generated tree will go here -->
-  </div>
-</aside>
+        <h3>
+          <span>🌳</span> Navigation Tree
+        </h3>
+        <div class="tree-search">
+          <input type="text" id="tree-search-input" placeholder="Search tree..." />
+        </div>
+        <div class="tree-container" id="tree-root-container">
+          <!-- Dynamically generated tree will go here -->
+        </div>
+      </aside>
 
       <!-- File Grid/List Container -->
       <section class="files-explorer">
