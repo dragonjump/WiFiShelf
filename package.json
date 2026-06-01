@@ -6,10 +6,16 @@
   "bin": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build:exe": "pkg . --targets node18-win-x64"
+    "clean-exe": "if exist dist\\WifiShelf.exe del /f /q dist\\WifiShelf.exe",
+    "make-icon": "node make-icon.js",
+    "build:exe": "pkg . --targets node18-win-x64 --output dist/WifiShelf.exe",
+    "icon:exe": "node set-icon.js",
+    "build:exe:full": "npm run clean-exe && npm run make-icon && npm run build:exe && npm run icon:exe"
   },
   "pkg": {
-    "assets": ["public/**/*"]
+    "assets": [
+      "public/**/*"
+    ]
   },
   "dependencies": {
     "express": "^4.19.2",
@@ -20,7 +26,9 @@
   "devDependencies": {
     "electron": "^30.5.1",
     "electron-builder": "^24.13.3",
-    "pkg": "^5.8.1"
+    "pkg": "^5.8.1",
+    "png-to-ico": "^3.0.1",
+    "rcedit": "^2.2.0"
   },
   "author": "Antigravity",
   "license": "ISC",
@@ -29,7 +37,7 @@
     "productName": "WifiShelf",
     "win": {
       "target": "nsis",
-      "icon": "public/image.png"
+      "icon": "public/icon.ico"
     },
     "directories": {
       "output": "dist"
