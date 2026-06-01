@@ -15,6 +15,7 @@ const btnListView = document.getElementById('btn-list-view');
 const btnBack = document.getElementById('btn-back');
 const folderStats = document.getElementById('folder-stats');
 const hostNameSpan = document.getElementById('host-name');
+const typeFilter = document.getElementById('type-filter');
 const sizeSelect = document.getElementById('size-select');
 
 // Application State Extensions
@@ -340,10 +341,20 @@ function showLoader() {
 function processAndRenderFiles() {
   const searchTerm = searchInput.value.toLowerCase().trim();
   
-  // Filter
+  // Filter by search term
   filteredFilesList = filesList.filter(file => {
     return file.name.toLowerCase().includes(searchTerm);
   });
+  
+  // Additional filter by type
+  const typeVal = typeFilter.value;
+  if (typeVal && typeVal !== 'all') {
+    filteredFilesList = filteredFilesList.filter(item => {
+      if (item.isDirectory) return true; // Keep directories
+      const { category } = getFileIconAndCategory(item.name, false);
+      return category === typeVal;
+    });
+  }
   
   // Sort
   const sortVal = sortSelect.value;
@@ -792,6 +803,10 @@ searchInput.addEventListener('input', () => {
 });
 
 sortSelect.addEventListener('change', () => {
+  processAndRenderFiles();
+});
+// Type filter listener
+typeFilter.addEventListener('change', () => {
   processAndRenderFiles();
 });
 
