@@ -1,1 +1,1 @@
-npx kill-port 3005 && cd "c:/Users/Acer/OneDrive/Documents/GitHub/WifiShelf" && node server.js "c:/Users/Acer/OneDrive/Documents/GitHub/WifiShelf"
+npx kill-port 3006 && cd "c:/Users/Acer/OneDrive/Documents/GitHub/WifiShelf" && node server.js "c:/Users/Acer/OneDrive/Documents/GitHub/WifiShelf"

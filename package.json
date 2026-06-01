@@ -5,16 +5,17 @@
   "main": "server.js",
   "bin": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": " npx kill-port 3006   && node server.js",
     "clean-exe": "if exist dist\\WifiShelf.exe del /f /q dist\\WifiShelf.exe",
     "make-icon": "node make-icon.js",
     "build:exe": "pkg . --targets node18-win-x64 --output dist/WifiShelf.exe",
     "icon:exe": "node set-icon.js",
-    "build:exe:full": "npm run clean-exe && npm run make-icon && npm run build:exe && npm run icon:exe"
+    "build:exe:full": "npx kill-port 3006   && npm run clean-exe && npm run make-icon && npm run build:exe  "
   },
   "pkg": {
     "assets": [
-      "public/**/*"
+      "public/**/*",
+      "config.json"
     ]
   },
   "dependencies": {
