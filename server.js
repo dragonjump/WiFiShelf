@@ -31,13 +31,67 @@ console.log(`📁 Serving directory: ${rootDir}`);
 console.log(`==================================================\n`);
 
 // Safety check helper to prevent directory traversal
+// Helper for packaged asset paths (used for view endpoint)
+function getAssetPath(relativePath) {
+  if (process.pkg) {
+    return path.join(path.dirname(process.execPath), relativePath);
+  }
+  return path.join(__dirname, relativePath);
+}
+
+function getStaticPath() {
+  if (process.pkg) {
+    // Assets will be copied next to the executable
+    return path.join(path.dirname(process.execPath), 'public');
+  }
+  return path.join(__dirname, 'public');
+}
+
+function copyAssets() {
+  // Determine source directory for assets.
+  // In development (__dirname) points to the project folder.
+  // When running from a packaged binary (process.pkg), __dirname is inside the virtual snapshot and cannot be read.
+  // In that case we fall back to the working directory (process.cwd()) where the original source files exist.
+  const srcDir = process.pkg ? path.join(process.cwd(), 'public') : path.join(__dirname, 'public');
+  const destDir = path.join(path.dirname(process.execPath), 'public');
+  const copyRecursive = (src, dest) => {
+    const entries = fs.readdirSync(src, { withFileTypes: true });
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      if (entry.isDirectory()) {
+        if (!fs.existsSync(destPath)) {
+          fs.mkdirSync(destPath);
+        }
+        copyRecursive(srcPath, destPath);
+      } else {
+        try {
+          const data = fs.readFileSync(srcPath);
+          fs.writeFileSync(destPath, data);
+        } catch (e) {
+          // ignore errors for virtual files that cannot be read directly
+        }
+      }
+    }
+  };
+  try {
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+    copyRecursive(srcDir, destDir);
+    console.log('Assets copied to', destDir);
+  } catch (err) {
+    console.warn('Asset copy failed (may be running in dev mode):', err.message);
+  }
+}
+
 function safeResolve(reqPath) {
   if (!reqPath) return rootDir;
 
   // Resolve the path relative to the root directory
   const resolved = path.resolve(rootDir, reqPath);
 
-  // Check if the resolved path is inside the root directory
+  // Ensure the resolved path stays within rootDir
   if (!resolved.startsWith(rootDir)) {
     throw new Error('Access denied: Path is outside the target root directory');
   }
@@ -78,7 +132,7 @@ function basicAuth(req, res, next) {
 }
 
 // Serve public frontend files (HTML, CSS, JS) before auth
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html', 'htm'], index: 'index.html' }));
+app.use(express.static(getStaticPath(), { extensions: ['html', 'htm'], index: 'index.html' }));
 
 // Apply Basic Auth protecting all other paths and endpoints
 app.use(basicAuth);
@@ -174,24 +228,24 @@ app.get('/api/view', (req, res) => {
     if (!relativeQueryPath) {
       return res.status(400).json({ error: 'Path is required' });
     }
+    // Resolve path within rootDir
     const absoluteFilePath = safeResolve(relativeQueryPath);
-    const stats = fs.statSync(absoluteFilePath);
+    // In the packaged binary we still have access to the real filesystem, so use the absolute path directly.
+    const assetPath = absoluteFilePath;
+    const stats = fs.statSync(assetPath);
     if (stats.isDirectory()) {
       return res.status(400).json({ error: 'Cannot view a directory' });
     }
-    // Start timing
-  const startTime = Date.now();
-  // Use on-finished to capture when response ends
-  const onFinished = require('on-finished');
-  onFinished(res, (err, res) => {
-    const duration = Date.now() - startTime;
-    console.log(`[TIMING] Served ${relativeQueryPath} in ${duration}ms`);
-  });
-    const contentType = mime.lookup(absoluteFilePath) || 'application/octet-stream';
-    // Set essential headers; Express' sendFile will handle range requests automatically
+    const startTime = Date.now();
+    const onFinished = require('on-finished');
+    onFinished(res, () => {
+      const duration = Date.now() - startTime;
+      console.log(`[TIMING] Served ${relativeQueryPath} in ${duration}ms`);
+    });
+    const contentType = mime.lookup(assetPath) || 'application/octet-stream';
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    res.sendFile(absoluteFilePath);
+    res.sendFile(assetPath);
   } catch (error) {
     console.error('Error viewing file:', error);
     res.status(500).json({ error: error.message });
@@ -244,6 +298,8 @@ app.delete('/api/delete', async (req, res) => {
 
 // Start the server
 app.listen(PORT, '0.0.0.0', async () => {
+  // Ensure assets are available on real filesystem for pkg
+  copyAssets();
   console.log(`🚀 Remote File Viewer is online!`);
   let startupUrl = `http://localhost:${PORT}`;
 

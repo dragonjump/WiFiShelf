@@ -4,8 +4,11 @@ const path = require('path');
 
 async function main() {
     try {
-        await rcedit(path.join(__dirname, 'dist', 'WifiShelf.exe'), {
-            'icon': path.join(__dirname, 'public', 'icon.ico'),
+// The exe is created in the dist folder and the icon lives in the public folder
+        const exePath = path.join(__dirname, 'dist', 'WifiShelf.exe');
+        const iconPath = path.join(__dirname, 'public', 'icon.ico');
+        await rcedit(exePath, {
+            'icon': iconPath,
             'file-version': '1.0.0',
             'product-version': '1.0.0',
             'version-string': {

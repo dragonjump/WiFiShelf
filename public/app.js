@@ -112,11 +112,11 @@ function createTreeNodeElement(name, path, hasChildren = true) {
 
   const toggle = document.createElement('span');
   toggle.className = `tree-toggle ${hasChildren ? '' : 'empty'}`;
-  toggle.innerHTML = '▶';
+  toggle.innerHTML = '<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
 
   const icon = document.createElement('span');
   icon.className = 'tree-folder-icon';
-  icon.textContent = '📁';
+  icon.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>';
 
   const label = document.createElement('span');
   label.className = 'tree-label';
@@ -255,32 +255,53 @@ btnChangeRoot.addEventListener('click', async () => {
 loadRootConfig();
 
 
-// File Extension Configurations & Emojis
+// File Extension Configurations & SVGs
 const FILE_TYPES = {
   // Videos
-  video: { emoji: '🎥', exts: ['mp4', 'webm', 'ogg', 'mkv', 'avi', 'mov', 'flv'] },
+  video: { 
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>`, 
+    exts: ['mp4', 'webm', 'ogg', 'mkv', 'avi', 'mov', 'flv'] 
+  },
   // Audio
-  audio: { emoji: '🎵', exts: ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'] },
+  audio: { 
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`, 
+    exts: ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'] 
+  },
   // Images
-  image: { emoji: '🖼️', exts: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'] },
+  image: { 
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`, 
+    exts: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'] 
+  },
   // Documents
-  document: { emoji: '📄', exts: ['pdf'] },
+  document: { 
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`, 
+    exts: ['pdf'] 
+  },
   // Code / Scripts
-  code: { emoji: '💻', exts: ['html', 'css', 'js', 'json', 'py', 'sh', 'bat', 'cmd', 'ps1', 'go', 'rs', 'cpp', 'c', 'h', 'ts', 'yaml', 'yml', 'md', 'txt', 'log'] },
+  code: { 
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>`, 
+    exts: ['html', 'css', 'js', 'json', 'py', 'sh', 'bat', 'cmd', 'ps1', 'go', 'rs', 'cpp', 'c', 'h', 'ts', 'yaml', 'yml', 'md', 'txt', 'log'] 
+  },
   // Archives
-  archive: { emoji: '📦', exts: ['zip', 'rar', '7z', 'tar', 'gz'] }
+  archive: { 
+    svg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>`, 
+    exts: ['zip', 'rar', '7z', 'tar', 'gz'] 
+  }
 };
 
+const FOLDER_SVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
+const DEFAULT_FILE_SVG = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
+
 function getFileIconAndCategory(filename, isDirectory) {
-  if (isDirectory) return { emoji: '📁', category: 'directory' };
+  if (isDirectory) return { svg: FOLDER_SVG, category: 'directory' };
   
   const ext = filename.split('.').pop().toLowerCase();
   for (const [category, config] of Object.entries(FILE_TYPES)) {
     if (config.exts.includes(ext)) {
-      return { emoji: config.emoji, category };
+      return { svg: config.svg, category };
     }
   }
-  return { emoji: '📄', category: 'unknown' };
+  return { svg: DEFAULT_FILE_SVG, category: 'unknown' };
 }
 
 // Utility: Format File Size
@@ -319,7 +340,9 @@ async function fetchDirectory(pathStr = '', updateHash = true) {
     console.error('Error fetching directory:', error);
     explorerView.innerHTML = `
       <div class="empty-container">
-        <div class="empty-icon">❌</div>
+        <div class="empty-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+        </div>
         <p>Error loading files: ${error.message}</p>
         <button class="btn btn-glass" style="margin-top:16px;" onclick="window.location.hash = ''">Return to Root</button>
       </div>
@@ -509,7 +532,9 @@ function renderFiles() {
   if (filteredFilesList.length === 0) {
     explorerView.innerHTML = `
       <div class="empty-container">
-        <div class="empty-icon">📁</div>
+        <div class="empty-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        </div>
         <p>No items found inside this folder.</p>
       </div>
     `;
@@ -526,10 +551,10 @@ function renderFiles() {
   }
   
   filteredFilesList.forEach(item => {
-    const { emoji, category } = getFileIconAndCategory(item.name, item.isDirectory);
+    const { svg, category } = getFileIconAndCategory(item.name, item.isDirectory);
     
     // Determine icon layout (use live image/video thumbnail)
-    let iconHtml = `<span class="card-icon">${emoji}</span>`;
+    let iconHtml = `<span class="card-icon">${svg}</span>`;
     if (category === 'image') {
       const imageUrl = `/api/view?path=${encodeURIComponent(item.path)}`;
       // Lazy load images: use data-src and loading="lazy"
@@ -651,8 +676,8 @@ async function openPreview(file, category) {
   modalDownload.href = fileUrl;
   modalDownload.download = file.name;
   
-  const { emoji } = getFileIconAndCategory(file.name, false);
-  modalFileIcon.textContent = emoji;
+  const { svg } = getFileIconAndCategory(file.name, false);
+  modalFileIcon.innerHTML = svg;
   
   modalBodyContent.innerHTML = '';
   
@@ -665,7 +690,9 @@ async function openPreview(file, category) {
   } else if (category === 'audio') {
     modalBodyContent.innerHTML = `
       <div class="preview-audio-container" style="text-align: center;">
-        <span style="font-size: 72px; display: block; margin-bottom: 20px; animation: pulse 2s infinite;">🎵</span>
+        <span style="display: block; margin-bottom: 20px; color: var(--primary);">
+          <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation: pulse 2s infinite;"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+        </span>
         <audio src="${fileUrl}" controls autoplay class="preview-audio"></audio>
       </div>
     `;
@@ -691,7 +718,9 @@ async function openPreview(file, category) {
   } else {
     modalBodyContent.innerHTML = `
       <div class="preview-unknown">
-        <div class="preview-unknown-icon">📦</div>
+        <div class="preview-unknown-icon" style="color: var(--text-muted); margin-bottom: 16px;">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+        </div>
         <p>No preview is available for this file type.</p>
         <p style="color: var(--text-secondary); margin-top: 10px; font-size: 13px;">You can still download this file onto your computer.</p>
       </div>
